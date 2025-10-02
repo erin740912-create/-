@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英文單詞消消樂 (學習導向版)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #4CAF50;
+            --danger-color: #f44336;
+            --warning-color: #ffc107;
+            --light-blue: #e0f7ff;
+        }
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-blue);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            overflow-x: hidden;
+            transition: background-color 0.5s;
+        }
+        h1 {
+            font-size: 2.2em;
+            color: #0056b3;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .game-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #game-container {
+            justify-content: flex-start;
+            padding-top: 10px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        #timer-container {
+            width: 95%;
+            max-width: 1100px;
+            height: 20px;
+            background-color: #b3e5fc;
+            border-radius: 15px;
+            border: 2px solid #0288d1;
+            overflow: hidden;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #timer-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #ffeb3b, #f44336);
+            border-radius: 12px;
+            transition: width 1s linear;
+        }
+        #game-board {
+            display: grid;
+            gap: 12px;
+            padding: 10px;
+            max-width: 1100px;
+            justify-content: center;
+            margin: 0 auto;
+        }
+        .bubble {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            box-shadow: inset -15px -15px 20px rgba(255,255,255,0.3), 
+                        inset 10px 10px 20px rgba(0,0,0,0.2), 
+                        5px 5px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            user-select: none;
+            opacity: 1;
+            position: relative;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bubble::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+            z-index: 1;
+        }
+        .bubble > div {
+            position: relative;
+            z-index: 2;
+        }
+        .bubble.selected {
+            transform: scale(1.1);
+            box-shadow: inset -15px -15px 20px rgba(255,255,255,0.3), 
+                        inset 10px 10px 20px rgba(0,0,0,0.2), 
+                        0 0 25px var(--warning-color);
+            border: 3px solid var(--warning-color);
+        }
+        .bubble.matched {
+            opacity: 0;
+            transform: scale(0);
+            pointer-events: none;
+        }
+        .bubble.english {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+        .bubble.chinese {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+        }
+        .screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 10;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: fadeIn 0.5s;
+            overflow-y: auto;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #main-menu-screen { 
+            display: flex; 
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+        }
+        .screen-title { 
+            font-size: 2.2em; 
+            margin-bottom: 20px; 
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+        }
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            max-width: 800px;
+        }
+        .btn {
+            font-size: 1em;
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            min-width: 140px;
+            font-weight: bold;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:hover, .btn:active {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-success { background-color: var(--success-color); }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-warning { background-color: var(--warning-color); }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-share { background-color: #17a2b8; }
+        .best-time { 
+            font-size: 0.7em; 
+            color: #ffdd57; 
+            margin-top: 5px; 
+            font-weight: normal; 
+        }
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 11;
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 95%;
+            max-width: 1100px;
+            margin-bottom: 15px;
+            color: #0056b3;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .level-indicator {
+            background: rgba(255,255,255,0.7);
+            padding: 5px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        /* 分享按鈕樣式 */
+        .share-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        .share-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 15px;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .share-btn i {
+            font-size: 1.2em;
+        }
+        .share-facebook { background-color: #3b5998; }
+        .share-whatsapp { background-color: #25D366; }
+        .share-line { background-color: #00C300; }
+        .share-link { background-color: #6c757d; }
+        
+        /* 分享彈窗 */
+        #share-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .share-modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .share-modal-content h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .share-url-container {
+            display: flex;
+            margin: 15px 0;
+        }
+        #share-url {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px 0 0 5px;
+            font-size: 0.9em;
+        }
+        #copy-url {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+        }
+        .qr-code-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+        #qr-code {
+            width: 150px;
+            height: 150px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            font-size: 0.8em;
+            color: #666;
+            text-align: center;
+            padding: 10px;
+        }
+        .close-share {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* 平板適配 */
+        @media (max-width: 1024px) {
+            h1 { font-size: 2em; }
+            .bubble { 
+                width: 120px; 
+                height: 120px; 
+                font-size: 1.2em; 
+            }
+            .screen-title { font-size: 2em; }
+            .btn { 
+                min-width: 130px; 
+                padding: 10px 18px; 
+                font-size: 0.95em;
+            }
+            #game-board { 
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+                gap: 10px;
+            }
+        }
+        
+        /* 手機適配 */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8em; }
+            .bubble { 
+                width: 100px; 
+                height: 100px; 
+                font-size: 1em; 
+            }
+            .screen-title { font-size: 1.8em; }
+            .btn { 
+                min-width: 120px; 
+                padding: 10px 15px; 
+                font-size: 0.9em;
+            }
+            #game-board { 
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+                gap: 8px;
+            }
+            .game-info {
+                flex-direction: column;
+                gap: 8px;
+                align-items: center;
+            }
+            .level-indicator {
+                width: 90%;
+                text-align: center;
+            }
+            .button-container {
+                gap: 8px;
+            }
+        }
+        
+        /* 小手機適配 */
+        @media (max-width: 480px) {
+            h1 { font-size: 1.6em; }
+            .bubble { 
+                width: 85px; 
+                height: 85px; 
+                font-size: 0.9em; 
+                padding: 8px;
+            }
+            .screen-title { font-size: 1.6em; }
+            .btn { 
+                min-width: 110px; 
+                padding: 8px 12px; 
+                font-size: 0.85em;
+            }
+            #game-board { 
+                grid-template-columns: repeat(auto-fit, minmax(85px, 1fr)); 
+                gap: 6px;
+            }
+            .game-info {
+                font-size: 1em;
+            }
+            #timer-container {
+                height: 18px;
+            }
+            .back-btn {
+                top: 15px;
+                left: 15px;
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+            .share-btn {
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+        }
+        
+        /* 超小手機適配 */
+        @media (max-width: 360px) {
+            h1 { font-size: 1.4em; }
+            .bubble { 
+                width: 75px; 
+                height: 75px; 
+                font-size: 0.8em; 
+            }
+            .screen-title { font-size: 1.4em; }
+            .btn { 
+                min-width: 100px; 
+                padding: 7px 10px; 
+                font-size: 0.8em;
+            }
+            #game-board { 
+                grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); 
+                gap: 5px;
+            }
+            .button-container {
+                gap: 6px;
+            }
+        }
+        
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        /* 橫屏優化 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .game-view {
+                padding-top: 5px;
+                padding-bottom: 5px;
+            }
+            h1 {
+                font-size: 1.6em;
+                margin-bottom: 5px;
+            }
+            .game-info {
+                margin-bottom: 8px;
+            }
+            #timer-container {
+                margin-bottom: 8px;
+            }
+            #game-board {
+                padding: 5px;
+                gap: 6px;
+            }
+            .bubble {
+                width: 80px;
+                height: 80px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-view" class="game-view">
+        <h1>英文單詞消消樂</h1>
+        <div class="game-info">
+            <div class="level-indicator" id="level-info">等級: 國小 - 簡單</div>
+            <div class="level-indicator" id="matches-info">已匹配: 0/10</div>
+        </div>
+        <div id="timer-container">
+            <div id="timer-bar"></div>
+        </div>
+        <div id="game-board"></div>
+    </div>
+
+    <!-- 主選單 -->
+    <div id="main-menu-screen" class="screen">
+        <h2 class="screen-title">英文單詞消消樂</h2>
+        <p style="font-size: 1.1em; margin-bottom: 25px; max-width: 600px;">通過匹配英文單詞與其中文解釋來學習英語！選擇您的學習目標開始遊戲。</p>
+        <div class="button-container">
+            <button class="btn btn-primary" onclick="showScreen('level-menu')">學程階段</button>
+            <button class="btn btn-primary" onclick="showScreen('phonics-menu')">自然發音</button>
+            <button class="btn btn-primary" onclick="showScreen('difficulty-menu', 'all')">綜合挑戰</button>
+            <button class="btn btn-share" onclick="showShareModal()">
+                <i class="fas fa-share-alt"></i> 分享遊戲
+            </button>
+        </div>
+    </div>
+
+    <!-- 學程階段選單 -->
+    <div id="level-menu" class="screen">
+        <button class="btn btn-secondary back-btn" onclick="showScreen('main-menu-screen')">返回</button>
+        <h2 class="screen-title">選擇學程</h2>
+        <p style="font-size: 1em; margin-bottom: 20px;">根據您的學習階段選擇合適的單詞庫</p>
+        <div class="button-container">
+            <button class="btn btn-success" onclick="showScreen('difficulty-menu', 'elementary')">國小 (前300字)</button>
+            <button class="btn btn-success" onclick="showScreen('difficulty-menu', 'junior')">國中 (後900字)</button>
+        </div>
+    </div>
+
+    <!-- 自然發音選單 -->
+    <div id="phonics-menu" class="screen">
+        <button class="btn btn-secondary back-btn" onclick="showScreen('main-menu-screen')">返回</button>
+        <h2 class="screen-title">選擇自然發音規則</h2>
+        <p style="font-size: 1em; margin-bottom: 20px;">通過特定發音規則學習單詞</p>
+        <div class="button-container">
+            <button class="btn btn-warning" onclick="showScreen('difficulty-menu', 'a_e')">a_e</button>
+            <button class="btn btn-warning" onclick="showScreen('difficulty-menu', 'ai')">ai</button>
+            <button class="btn btn-warning" onclick="showScreen('difficulty-menu', 'ay')">ay</button>
+            <button class="btn btn-warning" onclick="showScreen('difficulty-menu', 'ee')">ee</button>
+            <button class="btn btn-warning" onclick="showScreen('difficulty-menu', 'ea')">ea</button>
+            <button class="btn btn-warning" onclick="showScreen('difficulty-menu', 'i_e')">i_e</button>
+            <button class="btn btn-warning" onclick="showScreen('difficulty-menu', 'o_e')">o_e</button>
+            <button class="btn btn-warning" onclick="showScreen('difficulty-menu', 'u_e')">u_e</button>
+        </div>
+    </div>
+
+    <!-- 難度選擇畫面 -->
+    <div id="difficulty-menu" class="screen">
+         <button class="btn btn-secondary back-btn" onclick="goBackToPreviousMenu()">返回</button>
+        <h2 class="screen-title">選擇挑戰難度</h2>
+        <p style="font-size: 1em; margin-bottom: 20px;">難度影響遊戲時間和單詞數量</p>
+        <div class="button-container">
+            <button class="btn btn-primary" data-difficulty="easy" onclick="startGame(this.dataset.difficulty)">
+                簡單 (60秒)
+                <div class="best-time" id="best-time-easy">最佳時間: --</div>
+            </button>
+            <button class="btn btn-primary" data-difficulty="normal" onclick="startGame(this.dataset.difficulty)">
+                普通 (45秒)
+                <div class="best-time" id="best-time-normal">最佳時間: --</div>
+            </button>
+            <button class="btn btn-primary" data-difficulty="hard" onclick="startGame(this.dataset.difficulty)">
+                困難 (30秒)
+                <div class="best-time" id="best-time-hard">最佳時間: --</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- 結果畫面 -->
+    <div id="result-screen" class="screen">
+        <h2 class="screen-title" id="result-title">遊戲結果</h2>
+        <p style="font-size: 2em; margin: 15px 0;" id="result-message"></p>
+        <p style="font-size: 1.5em;" id="time-spent"></p>
+        <p style="font-size: 1.2em;" id="score-info"></p>
+        <div class="button-container">
+            <button class="btn btn-success" onclick="restartGame()">再玩一次</button>
+            <button class="btn btn-danger" onclick="showScreen('main-menu-screen')">返回主選單</button>
+            <button class="btn btn-share" onclick="showShareModal()">
+                <i class="fas fa-share-alt"></i> 分享遊戲
+            </button>
+        </div>
+    </div>
+
+    <!-- 分享模態框 -->
+    <div id="share-modal">
+        <div class="share-modal-content">
+            <h3>分享英文單詞消消樂</h3>
+            <p>將這個有趣的英語學習遊戲分享給朋友吧！</p>
+            
+            <div class="share-url-container">
+                <input type="text" id="share-url" readonly value="https://your-game-link.com">
+                <button id="copy-url">複製</button>
+            </div>
+            
+            <p>或掃描二維碼：</p>
+            <div class="qr-code-container">
+                <div id="qr-code">
+                    <!-- 這裡可以放置QR碼 -->
+                    <div>QR Code<br>Placeholder</div>
+                </div>
+            </div>
+            
+            <div class="share-container">
+                <div class="share-btn share-facebook" onclick="shareOnFacebook()">
+                    <i class="fab fa-facebook-f"></i> Facebook
+                </div>
+                <div class="share-btn share-whatsapp" onclick="shareOnWhatsApp()">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </div>
+                <div class="share-btn share-line" onclick="shareOnLine()">
+                    <i class="fab fa-line"></i> Line
+                </div>
+            </div>
+            
+            <button class="close-share" onclick="closeShareModal()">關閉</button>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲狀態變量
+        let currentLevel = '';
+        let currentDifficulty = '';
+        let selectedBubbles = [];
+        let matchedPairs = 0;
+        let totalPairs = 10;
+        let timer;
+        let timeLeft;
+        let gameActive = false;
+        let startTime;
+        
+        // 完整單詞列表（這裡只展示部分，實際應包含完整1200單詞）
+        const wordList = [
+            { en: 'a (an)', cn: '一(個)' }, { en: 'a few', cn: '一些' }, { en: 'a little', cn: '一些' }, 
+            { en: 'a lot', cn: '許多' }, { en: 'able', cn: '能夠...的' }, { en: 'about', cn: '關於' },
+            { en: 'above', cn: '在...上方' }, { en: 'abroad', cn: '在國外' }, { en: 'across', cn: '在...對面' },
+            { en: 'actress', cn: '女演員' }, { en: 'afraid', cn: '害怕的' }, { en: 'after', cn: '在...之後' },
+            { en: 'afternoon', cn: '下午' }, { en: 'again', cn: '再一次' }, { en: 'age', cn: '年齡' },
+            { en: 'ago', cn: '以前' }, { en: 'agree', cn: '同意' }, { en: 'ahead', cn: '在前方' },
+            { en: 'air', cn: '空氣' }, { en: 'airplane', cn: '飛機' }, { en: 'airport', cn: '機場' },
+            { en: 'all', cn: '全部的' }, { en: 'almost', cn: '幾乎' }, { en: 'along', cn: '沿著' },
+            { en: 'already', cn: '已經' }, { en: 'also', cn: '也' }, { en: 'always', cn: '總是' },
+            { en: 'a.m.', cn: '上午' }, { en: 'America', cn: '美國' }, { en: 'American', cn: '美國人;美國的' },
+            { en: 'and', cn: '和' }, { en: 'angry', cn: '生氣的' }, { en: 'animal', cn: '動物' },
+            { en: 'another', cn: '另一個的' }, { en: 'answer', cn: '回答' }, { en: 'ant', cn: '螞蟻' },
+            { en: 'any', cn: '任何的' }, { en: 'anyone', cn: '任何人' }, { en: 'anything', cn: '任何事物' },
+            { en: 'apartment', cn: '公寓' }, { en: 'appear', cn: '出現' }, { en: 'apple', cn: '蘋果' },
+            { en: 'April', cn: '四月' }, { en: 'arm', cn: '手臂' }, { en: 'around', cn: '在...四周' },
+            { en: 'arrive', cn: '到達' }, { en: 'art', cn: '美術' }, { en: 'as', cn: '與...一樣' },
+            { en: 'ask', cn: '問' }, { en: 'at', cn: '在' }, { en: 'August', cn: '八月' },
+            { en: 'aunt', cn: '伯(叔)母' }, { en: 'autumn', cn: '秋天' }, { en: 'away', cn: '遠離' },
+            { en: 'baby', cn: '嬰兒' }, { en: 'back', cn: '在...後面' }, { en: 'bad', cn: '壞的' },
+            { en: 'badminton', cn: '羽毛球' }, { en: 'bag', cn: '袋子' }, { en: 'bake', cn: '烘烤' },
+            { en: 'bakery', cn: '麵包店' }, { en: 'balcony', cn: '陽台' }, { en: 'ball', cn: '球' }
+        ];
+
+        // 自然發音單詞範例
+        const phonicsWords = {
+            'a_e': [
+                { en: 'cake', cn: '蛋糕' }, { en: 'name', cn: '名字' }, { en: 'game', cn: '遊戲' },
+                { en: 'make', cn: '製作' }, { en: 'take', cn: '拿取' }, { en: 'lake', cn: '湖' },
+                { en: 'bake', cn: '烘烤' }, { en: 'late', cn: '遲到' }, { en: 'gate', cn: '大門' },
+                { en: 'date', cn: '日期' }
+            ],
+            'ai': [
+                { en: 'rain', cn: '雨' }, { en: 'train', cn: '火車' }, { en: 'wait', cn: '等待' },
+                { en: 'paint', cn: '油漆' }, { en: 'sail', cn: '航行' }, { en: 'tail', cn: '尾巴' },
+                { en: 'mail', cn: '郵件' }, { en: 'snail', cn: '蝸牛' }, { en: 'chain', cn: '鏈條' },
+                { en: 'brain', cn: '大腦' }
+            ],
+            'ay': [
+                { en: 'day', cn: '日子' }, { en: 'say', cn: '說' }, { en: 'play', cn: '玩' },
+                { en: 'way', cn: '方式' }, { en: 'may', cn: '可能' }, { en: 'stay', cn: '停留' },
+                { en: 'gray', cn: '灰色' }, { en: 'pray', cn: '祈禱' }, { en: 'clay', cn: '黏土' },
+                { en: 'tray', cn: '托盤' }
+            ],
+            'ee': [
+                { en: 'see', cn: '看見' }, { en: 'tree', cn: '樹' }, { en: 'bee', cn: '蜜蜂' },
+                { en: 'feet', cn: '腳' }, { en: 'green', cn: '綠色' }, { en: 'sheep', cn: '綿羊' },
+                { en: 'sleep', cn: '睡覺' }, { en: 'three', cn: '三' }, { en: 'queen', cn: '女王' },
+                { en: 'wheel', cn: '輪子' }
+            ],
+            'ea': [
+                { en: 'sea', cn: '海洋' }, { en: 'tea', cn: '茶' }, { en: 'read', cn: '閱讀' },
+                { en: 'eat', cn: '吃' }, { en: 'meat', cn: '肉' }, { en: 'leaf', cn: '葉子' },
+                { en: 'peach', cn: '桃子' }, { en: 'beach', cn: '海灘' }, { en: 'cream', cn: '奶油' },
+                { en: 'dream', cn: '夢想' }
+            ],
+            'i_e': [
+                { en: 'kite', cn: '風箏' }, { en: 'five', cn: '五' }, { en: 'nine', cn: '九' },
+                { en: 'time', cn: '時間' }, { en: 'like', cn: '喜歡' }, { en: 'bike', cn: '自行車' },
+                { en: 'white', cn: '白色' }, { en: 'write', cn: '寫' }, { en: 'drive', cn: '開車' },
+                { en: 'smile', cn: '微笑' }
+            ],
+            'o_e': [
+                { en: 'home', cn: '家' }, { en: 'nose', cn: '鼻子' }, { en: 'rope', cn: '繩子' },
+                { en: 'note', cn: '筆記' }, { en: 'cone', cn: '圓錐體' }, { en: 'bone', cn: '骨頭' },
+                { en: 'stone', cn: '石頭' }, { en: 'phone', cn: '電話' }, { en: 'rose', cn: '玫瑰' },
+                { en: 'close', cn: '關閉' }
+            ],
+            'u_e': [
+                { en: 'cute', cn: '可愛的' }, { en: 'mute', cn: '靜音' }, { en: 'tube', cn: '管子' },
+                { en: 'cube', cn: '立方體' }, { en: 'use', cn: '使用' }, { en: 'rule', cn: '規則' },
+                { en: 'flute', cn: '長笛' }, { en: 'June', cn: '六月' }, { en: 'tune', cn: '曲調' },
+                { en: 'huge', cn: '巨大的' }
+            ]
+        };
+
+        // 屏幕切換函數
+        function showScreen(screenId, level) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.style.display = 'none';
+            });
+            document.getElementById(screenId).style.display = 'flex';
+            
+            if (level) {
+                currentLevel = level;
+            }
+            
+            // 更新最佳時間顯示
+            updateBestTimes();
+        }
+
+        // 返回上一級選單
+        function goBackToPreviousMenu() {
+            if (currentLevel === 'elementary' || currentLevel === 'junior') {
+                showScreen('level-menu');
+            } else if (Object.keys(phonicsWords).includes(currentLevel)) {
+                showScreen('phonics-menu');
+            } else if (currentLevel === 'all') {
+                showScreen('main-menu-screen');
+            } else {
+                showScreen('main-menu-screen');
+            }
+        }
+
+        // 更新最佳時間顯示
+        function updateBestTimes() {
+            const difficulties = ['easy', 'normal', 'hard'];
+            difficulties.forEach(diff => {
+                const bestTime = localStorage.getItem(`bestTime-${currentLevel}-${diff}`);
+                const element = document.getElementById(`best-time-${diff}`);
+                if (bestTime) {
+                    element.textContent = `最佳時間: ${bestTime}秒`;
+                } else {
+                    element.textContent = '最佳時間: --';
+                }
+            });
+        }
+
+        // 開始遊戲
+        function startGame(difficulty) {
+            currentDifficulty = difficulty;
+            showScreen('game-view');
+            initGame();
+        }
+
+        // 初始化遊戲
+        function initGame() {
+            // 重置遊戲狀態
+            selectedBubbles = [];
+            matchedPairs = 0;
+            gameActive = true;
+            
+            // 根據難度設置時間
+            switch(currentDifficulty) {
+                case 'easy': 
+                    timeLeft = 60; 
+                    totalPairs = 6;
+                    break;
+                case 'normal': 
+                    timeLeft = 45; 
+                    totalPairs = 8;
+                    break;
+                case 'hard': 
+                    timeLeft = 30; 
+                    totalPairs = 10;
+                    break;
+            }
+            
+            // 更新遊戲信息
+            document.getElementById('level-info').textContent = `等級: ${getLevelName()} - ${getDifficultyName()}`;
+            document.getElementById('matches-info').textContent = `已匹配: 0/${totalPairs}`;
+            document.getElementById('timer-bar').style.width = '100%';
+            
+            // 生成遊戲單詞
+            const gameWords = generateGameWords();
+            
+            // 創建遊戲氣泡
+            createBubbles(gameWords);
+            
+            // 開始計時
+            startTime = new Date();
+            startTimer();
+        }
+
+        // 獲取等級名稱
+        function getLevelName() {
+            switch(currentLevel) {
+                case 'elementary': return '國小';
+                case 'junior': return '國中';
+                case 'all': return '綜合';
+                default: 
+                    if (Object.keys(phonicsWords).includes(currentLevel)) {
+                        return `自然發音: ${currentLevel}`;
+                    }
+                    return '未知';
+            }
+        }
+
+        // 獲取難度名稱
+        function getDifficultyName() {
+            switch(currentDifficulty) {
+                case 'easy': return '簡單';
+                case 'normal': return '普通';
+                case 'hard': return '困難';
+                default: return '未知';
+            }
+        }
+
+        // 生成遊戲單詞
+        function generateGameWords() {
+            let wordPool = [];
+            
+            // 根據當前等級選擇單詞池
+            if (currentLevel === 'elementary') {
+                wordPool = wordList.slice(0, 50); // 使用前50個單詞作為國小單詞
+            } else if (currentLevel === 'junior') {
+                wordPool = wordList.slice(50, 100); // 使用50-100作為國中單詞
+            } else if (currentLevel === 'all') {
+                wordPool = wordList; // 使用所有單詞
+            } else if (Object.keys(phonicsWords).includes(currentLevel)) {
+                wordPool = phonicsWords[currentLevel]; // 使用自然發音單詞
+            }
+            
+            // 隨機選擇單詞
+            const selectedWords = [];
+            const usedIndices = new Set();
+            
+            while (selectedWords.length < totalPairs && selectedWords.length < wordPool.length) {
+                const randomIndex = Math.floor(Math.random() * wordPool.length);
+                
+                if (!usedIndices.has(randomIndex)) {
+                    selectedWords.push(wordPool[randomIndex]);
+                    usedIndices.add(randomIndex);
+                }
+            }
+            
+            return selectedWords;
+        }
+
+        // 創建遊戲氣泡
+        function createBubbles(words) {
+            const gameBoard = document.getElementById('game-board');
+            gameBoard.innerHTML = '';
+            
+            // 根據單詞數量設置網格佈局
+            const columns = Math.min(Math.ceil(Math.sqrt(words.length * 2)), 5);
+            gameBoard.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            
+            // 創建英文和中文氣泡
+            const bubbles = [];
+            words.forEach((word, index) => {
+                bubbles.push({
+                    type: 'english',
+                    content: word.en,
+                    pairId: index
+                });
+                bubbles.push({
+                    type: 'chinese',
+                    content: word.cn,
+                    pairId: index
+                });
+            });
+            
+            // 隨機排序氣泡
+            shuffleArray(bubbles);
+            
+            // 添加氣泡到遊戲板
+            bubbles.forEach(bubble => {
+                const bubbleElement = document.createElement('div');
+                bubbleElement.className = `bubble ${bubble.type}`;
+                bubbleElement.innerHTML = `<div>${bubble.content}</div>`;
+                bubbleElement.dataset.pairId = bubble.pairId;
+                bubbleElement.dataset.type = bubble.type;
+                
+                // 為觸摸設備優化點擊事件
+                bubbleElement.addEventListener('click', () => handleBubbleClick(bubbleElement));
+                bubbleElement.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    handleBubbleClick(bubbleElement);
+                }, { passive: false });
+                
+                gameBoard.appendChild(bubbleElement);
+            });
+        }
+
+        // 處理氣泡點擊
+        function handleBubbleClick(bubble) {
+            if (!gameActive || bubble.classList.contains('matched') || bubble.classList.contains('selected')) {
+                return;
+            }
+            
+            // 如果已經選擇了兩個氣泡，先重置
+            if (selectedBubbles.length >= 2) {
+                selectedBubbles.forEach(selectedBubble => {
+                    selectedBubble.classList.remove('selected');
+                });
+                selectedBubbles = [];
+            }
+            
+            // 選擇當前氣泡
+            bubble.classList.add('selected');
+            selectedBubbles.push(bubble);
+            
+            // 如果選擇了兩個氣泡，檢查是否匹配
+            if (selectedBubbles.length === 2) {
+                const bubble1 = selectedBubbles[0];
+                const bubble2 = selectedBubbles[1];
+                
+                // 檢查是否為一對（一個英文，一個中文，且pairId相同）
+                if (bubble1.dataset.type !== bubble2.dataset.type && 
+                    bubble1.dataset.pairId === bubble2.dataset.pairId) {
+                    // 匹配成功
+                    setTimeout(() => {
+                        bubble1.classList.add('matched');
+                        bubble2.classList.add('matched');
+                        selectedBubbles = [];
+                        matchedPairs++;
+                        
+                        // 更新匹配信息
+                        document.getElementById('matches-info').textContent = `已匹配: ${matchedPairs}/${totalPairs}`;
+                        
+                        // 檢查遊戲是否完成
+                        if (matchedPairs === totalPairs) {
+                            endGame(true);
+                        }
+                    }, 500);
+                } else {
+                    // 匹配失敗
+                    setTimeout(() => {
+                        bubble1.classList.remove('selected');
+                        bubble2.classList.remove('selected');
+                        selectedBubbles = [];
+                    }, 1000);
+                }
+            }
+        }
+
+        // 開始計時器
+        function startTimer() {
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft--;
+                const percentage = (timeLeft / (currentDifficulty === 'easy' ? 60 : currentDifficulty === 'normal' ? 45 : 30)) * 100;
+                document.getElementById('timer-bar').style.width = `${percentage}%`;
+                
+                if (timeLeft <= 0) {
+                    endGame(false);
+                }
+            }, 1000);
+        }
+
+        // 結束遊戲
+        function endGame(isWin) {
+            gameActive = false;
+            clearInterval(timer);
+            
+            const endTime = new Date();
+            const timeSpent = Math.round((endTime - startTime) / 1000);
+            
+            // 顯示結果畫面
+            showScreen('result-screen');
+            document.getElementById('result-title').textContent = isWin ? '恭喜過關！' : '時間到！';
+            document.getElementById('result-message').textContent = isWin ? '你成功匹配了所有單詞！' : '下次再努力！';
+            document.getElementById('time-spent').textContent = `用時: ${timeSpent}秒`;
+            document.getElementById('score-info').textContent = `匹配了 ${matchedPairs} 對單詞`;
+            
+            // 保存最佳時間（如果贏了且時間比之前好）
+            if (isWin) {
+                const bestTimeKey = `bestTime-${currentLevel}-${currentDifficulty}`;
+                const currentBest = localStorage.getItem(bestTimeKey);
+                
+                if (!currentBest || timeSpent < parseInt(currentBest)) {
+                    localStorage.setItem(bestTimeKey, timeSpent.toString());
+                }
+            }
+        }
+
+        // 重新開始遊戲
+        function restartGame() {
+            initGame();
+        }
+
+        // 工具函數：隨機排序數組
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 分享功能
+        function showShareModal() {
+            document.getElementById('share-modal').style.display = 'flex';
+            
+            // 設置分享URL（如果遊戲已經部署到服務器）
+            // 如果只是本地文件，則使用當前URL
+            const gameUrl = window.location.href;
+            document.getElementById('share-url').value = gameUrl;
+        }
+        
+        function closeShareModal() {
+            document.getElementById('share-modal').style.display = 'none';
+        }
+        
+        function copyUrl() {
+            const shareUrl = document.getElementById('share-url');
+            shareUrl.select();
+            shareUrl.setSelectionRange(0, 99999); // 對於移動設備
+            document.execCommand('copy');
+            
+            // 顯示複製成功提示
+            alert('網址已複製到剪貼板！');
+        }
+        
+        function shareOnFacebook() {
+            const url = encodeURIComponent(document.getElementById('share-url').value);
+            const text = encodeURIComponent('快來玩這個有趣的英文單詞消消樂遊戲，邊玩邊學英文！');
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
+        }
+        
+        function shareOnWhatsApp() {
+            const url = encodeURIComponent(document.getElementById('share-url').value);
+            const text = encodeURIComponent('快來玩這個有趣的英文單詞消消樂遊戲，邊玩邊學英文！');
+            window.open(`https://api.whatsapp.com/send?text=${text}%20${url}`, '_blank');
+        }
+        
+        function shareOnLine() {
+            const url = encodeURIComponent(document.getElementById('share-url').value);
+            const text = encodeURIComponent('快來玩這個有趣的英文單詞消消樂遊戲，邊玩邊學英文！');
+            window.open(`https://social-plugins.line.me/lineit/share?url=${url}&text=${text}`, '_blank');
+        }
+        
+        // 初始化複製按鈕事件
+        document.getElementById('copy-url').addEventListener('click', copyUrl);
+
+        // 初始化頁面
+        window.onload = function() {
+            showScreen('main-menu-screen');
+        };
+    </script>
+</body>
+</html>
